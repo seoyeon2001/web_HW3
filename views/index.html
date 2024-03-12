@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>3번 과제 2020204094 김서연</title>
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://cdn.socket.io/4.5.3/socket.io.min.js" integrity="sha384-WPFUvHkB1aHA5TDSZi6xtDgkF0wXJcIIxXhC6h8OT8EH3fC5PWro5pWJ1THjcfEi" crossorigin="anonymous" ></script>
+  </head>
+
+  <body>
+    <!-- 기록 보기 -->
+    <div class="row">
+      <div class="col"></div>
+      <div class="col">
+        <button id="showrecord" class="btn btn-secondary w-100 p-2" style="margin-top: 20px;" onclick="location.href='/record'">기록 보기</button>
+      </div>
+      <div class="col"></div>
+    </div>
+    <br>
+
+    <!-- 방 만들기 -->
+    <div class="row">
+      <div class="col"></div>
+      <div class="col">
+        <div id="createRoomForm">
+          <div class="input-group mb-3">
+            <input type="text" id="roomName" class="form-control" placeholder="방 이름을 입력하세요" required>
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" onclick="submitRoom()">방 만들기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col"></div>
+    </div>
+
+    <!-- 방 리스트 -->
+    <div class="row">
+      <div class="col"></div>
+      <div class="col">
+        <div id="roomList">
+          <button style="text-align: center;" id="list" class="btn btn-secondary w-100 p-2">방 리스트 보기</button>
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">방 이름</th>
+                <th scope="col">입장 버튼</th>
+              </tr>
+            </thead>
+            <tbody id="showroom"></tbody>
+          </table>
+        </div>
+      </div> 
+      <div class="col"></div>     
+    </div>
+
+    <script>
+      const localStorage_token = localStorage.getItem('토큰'); // 토큰을 가져온다.
+      const sessionStorage_token = sessionStorage.getItem('토큰'); // 토큰을 가져온다.
+
+      token = localStorage_token || sessionStorage_token; // 둘 중 하나라도 있으면 토큰으로 설정한다.
+      
+      if (!token) {
+        // 토큰이 없으면 로그인 페이지로 이동
+        window.location.href = '/login';
+      } else {
+          setInterval(() => {
+            fetch('/checktoken', {
+              method: 'GET',
+              headers: {
+                'authorization': `${token}`,
+                'Content-Type': 'application/json'
+              },
+            })
+            .then(response => { return response.json(); })                        
+            .then(data => {
+              if (data.message === '토큰이 만료되었습니다.') {
+                if (localStorage_token) {
+                  localStorage.removeItem('토큰');
+                } else if (sessionStorage_token) {
+                  sessionStorage.removeItem('토큰');
+                }
+                alert('토큰이 만료되었습니다. 로그인 페이지로 이동합니다.');
+                window.location.href = '/login';
+              }
+            })
+            .catch(error => {
+              console.error('에러가 발생했습니다.:', error);
+            });
+          }, 60000);
+      };
+
+      document.getElementById('list').addEventListener('click', () => {
+        loadRoomList();        
+      });
+
+      // 방 리스트 불러오기
+      function loadRoomList() {
+        fetch('/showroomlist')
+        .then(response => { return response.json(); })
+        .then(data => { displayRoomList(data.rooms); })
+        .catch(error => { console.error('Error:', error); });
+      }
+
+      // 방 리스트 표시하기
+      function displayRoomList(rooms) {
+        const showroom = document.getElementById('showroom'); 
+        showroom.innerHTML = ''; // 기존 리스트 초기화
+
+        rooms.forEach(room => {
+          const row = document.createElement('tr');
+
+          const roomNameCell = document.createElement('td');
+          roomNameCell.textContent = room;
+          row.appendChild(roomNameCell);
+
+          const buttonCell = document.createElement('td');
+          
+          const button = document.createElement('button');
+          button.setAttribute('class', 'btn btn-success');
+          button.textContent = '입장';
+          button.addEventListener('click', () => joinRoom(room));
+
+          buttonCell.appendChild(button);
+          row.appendChild(buttonCell);
+
+          showroom.appendChild(row);
+        });
+      }
+      
+      // 방 입장하기
+      function joinRoom(roomName) {
+        fetch('/join-room', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', },
+          body: JSON.stringify({ roomName }),
+        })
+        .then(response => { return response.json(); })
+        .then(data => {
+          if (data.message === '방 입장 성공') {
+            // 서버 응답이 성공인 경우 방에 입장합니다.
+            alert(`${roomName} 방에 입장합니다.`);
+            window.location.href = `/room/${roomName}`;
+          } else {
+            alert(`${data.message}`);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+      }
+
+      // 방 만들기
+      function submitRoom() {
+        const roomName = document.getElementById('roomName').value; // 사용자가 입력한 방 이름
+
+        fetch('/create-room', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', },
+            body: JSON.stringify({ roomName }),
+        })
+        .then(response => { return response.json(); })          
+        .then(data => {
+          alert(data.message); // 서버로부터의 응답 메시지를 표시합니다.
+
+          loadRoomList(); // 방이 성공적으로 생성되면 방 리스트를 다시 불러옵니다.
+          document.getElementById('roomName').value = '';
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+      }
+
+    </script>
+  </body>
+</html>

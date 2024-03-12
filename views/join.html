@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        button {
+            background-color: black;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #555;
+        }
+
+        button:disabled {
+            background-color: gray;
+            color: black;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid black;
+            border-radius: 4px;
+        }
+
+        /* 입력 가능한 경우의 스타일 */
+        input:not(:disabled) {
+            background-color: white;
+        }
+
+        /* 입력 불가능한 경우의 스타일 */
+        input:disabled {
+            background-color: rgb(205, 204, 204);
+        }
+
+    </style>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <title>회원가입</title>
+</head>
+<body>
+    <h1>회원가입</h1>
+    <br>
+    <form action="/join" method="POST">
+        <table>
+            <tr>
+                <td><label for="id">아이디</label></td>
+                <td><input type="text" name="id" id="id"required></td>
+                <td><button id="checkUserid" value="idcheck" class="btn btn-dark">아이디 중복 확인</button></td>
+                <td><span id="checkUseridresult"></span></td>
+            </tr>
+            <tr>
+                <td><label for="password">비밀번호</label></td>
+                <td><input type="password" name="password" id="password" onchange="checkPw()" required disabled></td>
+                <td></td>
+                <td><span id="check1"></span></td>  
+            </tr>
+            <tr>
+                <td><label for="passwordcheck">비밀번호 확인</label></td>
+                <td><input type="password" name="passwordcheck" id="passwordcheck" onchange="checkPw()" required disabled></td>
+                <td></td>
+                <td><span id="check2"></span></td>    
+            </tr>
+        </table>
+        <button id="signupButton" type="submit" value='signup' class="btn btn-dark" disabled>회원가입</button>
+    </form>  
+    
+    <script>
+        document.getElementById('id').addEventListener('input', function() {
+            resetIdCheck();
+        });
+
+        document.getElementById('password').addEventListener('input', function() {
+            resetpw();
+        });
+
+        // 입력 상태 초기화 함수
+        function resetIdCheck() {
+            document.getElementById('checkUseridresult').innerText = '';
+            document.getElementById('checkUseridresult').style.color = '';
+            document.getElementById('password').value = '';
+            document.getElementById('passwordcheck').value = '';
+            document.getElementById('password').disabled = true;
+            document.getElementById('passwordcheck').disabled = true;
+            document.getElementById('check1').innerText = '';
+            document.getElementById('check2').innerText = '';
+            document.getElementById('signupButton').disabled = true;
+        }
+
+        function resetpw() {
+            document.getElementById('passwordcheck').value = '';
+            document.getElementById('passwordcheck').disabled = true;
+            document.getElementById('check1').innerText = '';
+            document.getElementById('check2').innerText = '';
+            document.getElementById('signupButton').disabled = true;
+        }
+
+        // 아이디 중복 확인 버튼 클릭 시
+        document.querySelector('button[value="idcheck"]').addEventListener('click', function(event) {
+
+            event.preventDefault(); // 기본 동작 방지
+            
+            const id = document.getElementById('id').value;
+
+            if (id === '') {
+                alert('아이디를 입력해주세요.');
+                return;
+            }
+            
+            // 중복 확인 로직
+            fetch('/join/check-userid', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id }),
+            })
+            .then(response => { return response.json(); })
+            .then(data => { 
+                const checkUseridresult = document.getElementById('checkUseridresult');
+
+                if (data.available) {
+                    checkUseridresult.innerText = data.message;
+                    checkUseridresult.style.color = 'blue';
+                    document.getElementById('password').disabled = false;
+
+                } else {
+                    // 중복된 경우에 대한 처리
+                    checkUseridresult.innerText = data.message;
+                    checkUseridresult.style.color = 'red';
+                    document.getElementById('password').disabled = true;
+                    // 중복된 경우 아이디 입력 칸 초기화
+                    document.getElementById('id').value = '';
+                    document.getElementById('id').focus();
+                }
+            })
+            .catch(error => {
+                console.error('에러가 발생했습니다.:', error);
+            });
+        });
+
+
+        // 찐 회원가입 버튼 클릭 시
+        document.querySelector('button[value="signup"]').addEventListener('click', function(event) {
+            event.preventDefault(); // 기본 동작 방지
+
+            const id = document.getElementById('id').value;
+            const password = document.getElementById('password').value;
+
+            fetch('/join/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, password }),
+            })
+            .then(response => { return response.json(); })
+            .then(data => {            
+                // 회원가입이 성공하면
+                if (data.success) {
+                    alert('회원가입이 완료되었습니다.');
+                    window.location.href = '/login'; // 로그인 페이지로 이동
+                } else {
+                    // 서버에서 에러 메시지를 받아서 사용자에게 표시할 수 있음
+                    console.error('회원가입 실패:', data.message);
+                    // 사용자에게 실패 메시지를 표시하거나 다른 처리를 수행
+                }
+            })
+            .catch(error => {
+                console.error('에러가 발생했습니다.:', error);
+            });
+        });
+
+        // 비밀번호 유효성 검사
+        function checkPw() {
+            const password = document.getElementById('password').value;
+            const passwordcheck = document.getElementById('passwordcheck').value;
+            const check1 = document.getElementById('check1');
+            const check2 = document.getElementById('check2');
+
+            // 비밀번호가 영어와 숫자의 조합이며 4글자 이상인지 확인
+            const regex = /^(?=.*[A-Za-z])(?=.*\d).{4,}$/;
+            if (!regex.test(password)) {
+                document.getElementById('password').value = ''; // 유효성 검사 통과 못하면 입력한 값 지움
+                document.getElementById('password').focus();
+                check1.innerHTML = '비밀번호는 영어와 숫자의 조합이며 4글자 이상이어야 합니다.';
+                check1.style.color = 'red';
+            } else {
+                check1.innerHTML = ''; // 유효성 검사 통과 시 에러 메시지를 지움
+                document.getElementById('passwordcheck').disabled = false; // 유효성 검사 통과 시 버튼 활성화
+            }
+
+            // 비밀번호와 비밀번호 확인이 같은지 확인
+            if(password !='' && passwordcheck!='') {
+                if(password == passwordcheck) {
+                    check2.innerHTML='비밀번호가 일치합니다.'
+                    check2.style.color='blue';
+                    document.getElementById('signupButton').disabled = false;
+                } else{
+                    check2.innerHTML='비밀번호가 일치하지 않습니다.';
+                    check2.style.color='red';
+                    document.getElementById('signupButton').disabled = true;
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>

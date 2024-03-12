@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://cdn.socket.io/4.5.3/socket.io.min.js" integrity="sha384-WPFUvHkB1aHA5TDSZi6xtDgkF0wXJcIIxXhC6h8OT8EH3fC5PWro5pWJ1THjcfEi" crossorigin="anonymous" ></script>
+    <style>
+        p, div {
+            display: inline-block;
+            margin-right: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <br>
+    <h1>기록을 볼 수 있는 화면입니다.</h1>
+    <br>
+    <ul>
+        <p>승리 횟수:</p>
+        <div id="wins"></div>
+        <p>패배 횟수:</p>
+        <div id="losses"></div>
+        <p>승률:</p>
+        <div id="winRate"></div>
+    </ul>
+</body>
+<script>
+    const localStorage_token = localStorage.getItem('토큰'); // 토큰을 가져온다.
+    const sessionStorage_token = sessionStorage.getItem('토큰'); // 토큰을 가져온다.
+    token = localStorage_token || sessionStorage_token; // 둘 중 하나라도 있으면 토큰으로 설정한다.
+
+    fetch('/record/info', {
+        method: 'GET',
+        headers: {
+            'authorization': `${token}`, // Include the user token for authentication
+            'Content-Type': 'application/json'
+        },
+        })
+        .then(response => { return response.json(); })
+        .then(data => {
+            document.getElementById('wins').innerText = data.wins;
+            document.getElementById('losses').innerText = data.losses;
+            const winRate = data.wins / (data.wins + data.losses) * 100;
+            document.getElementById('winRate').innerText = winRate+"%";
+        })
+        .catch(error => {
+            console.error('승패 정보를 받아오지 못했습니다.', error);
+        });
+</script>
+</html>

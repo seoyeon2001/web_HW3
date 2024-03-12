@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        button {
+            background-color: black;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #555;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid black;
+            border-radius: 4px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <title>로그인</title>
+</head>
+
+<body>
+    <h1>로그인</h1>
+    <p>2020204094 김서연</p>
+    <br>
+
+    <form action="/login" method="POST" id="loginForm">
+        <table>
+            <tr>
+                <td><label for="id">아이디</label></td>
+                <td><input type="text" name="id" id="id" placeholder="아이디" required></td>
+            </tr>
+            <tr>
+                <td><label for="password">비밀번호</label></td>
+                <td><input type="password" name="password" id="password" placeholder="비밀번호" required></td>
+            </tr>
+        </table>
+        <input type="checkbox" id="rememberMe" name="rememberMe" value="rememberMe">
+        <label for="rememberMe">로그인 유지</label>
+        <br>
+
+        <button type="submit" value="로그인" id="loginbutton" class="btn btn-dark" disabled>로그인</button>
+    </form>
+    <br>
+
+    <a href="/join" class="btn btn-dark">회원가입</a>
+
+    <script>
+        // 로그인 버튼의 상태 변경
+        document.getElementById('loginForm').addEventListener('input', function() {
+            const id = document.getElementById('id').value;
+            const password = document.getElementById('password').value;
+            const loginButton = document.getElementById('loginbutton');
+
+            // 입력값이 없을 경우 버튼을 비활성화, 입력값이 있을 경우 버튼을 활성화
+            loginbutton.disabled = !id || !password;
+        });
+
+        document.querySelector('button').addEventListener('click', function(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('id').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+
+            fetch('/login/user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, password, rememberMe })
+            })
+            .then(response => { return response.json(); })
+            .then(data => {
+                if (data.type === 'right') {
+                    alert('로그인 성공!');
+                    if (rememberMe) { // 로컬스토리지에 저장 - checkbox가 체크된 경우
+                        localStorage.setItem('토큰', data.token);
+                    } else {
+                        // 세션스토리지에 저장 - checkbox가 체크되지 않은 경우
+                        sessionStorage.setItem('토큰', data.token);
+                    }
+                    window.location.href = '/';
+                } else if (data.type === 'no_id') {
+                    alert('존재하지 않는 아이디입니다.');
+                    window.location.href = '/login';
+                } else if (data.type === 'wrong_pw') {
+                    alert('비밀번호가 일치하지 않습니다.');
+                    window.location.href = '/login';
+                }
+            })
+            .catch(error => {
+                console.error('에러가 발생했습니다.:', error);
+            });
+        })
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Random Speed Slider</title>
+    <style>
+      #slider-container {
+        position: relative;
+        width: 300px;
+        height: 50px;
+        background-color: #eee;
+        margin: 10px;
+      }
+      #slider {
+        position: absolute;
+        width: 30px;
+        height: 50px;
+        background-color: #007bff;
+      }
+      #output {
+        margin: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="slider-container">
+      <div id="slider"></div>
+    </div>
+    <button onclick="showValue()">Show Value</button>
+    <div id="output"></div>
+    <script>
+      const sliderContainer = document.getElementById("slider-container");
+      const slider = document.getElementById("slider");
+      const output = document.getElementById("output");
+
+      let direction = 1;
+      let speed = getRandomSpeed();
+
+      function moveSlider() {
+        const sliderPosition = slider.offsetLeft;
+        const containerWidth = sliderContainer.offsetWidth;
+        const sliderWidth = slider.offsetWidth;
+
+        if (
+          sliderPosition >= containerWidth - sliderWidth ||
+          sliderPosition <= 0
+        ) {
+          direction *= -1;
+        }
+
+        const newPosition = Math.max(
+          0,
+          Math.min(
+            containerWidth - sliderWidth,
+            sliderPosition + direction * speed
+          )
+        );
+        slider.style.left = newPosition + "px";
+      }
+
+      function showValue() {
+        const sliderPosition = slider.offsetLeft;
+        const containerWidth = sliderContainer.offsetWidth;
+        const sliderWidth = slider.offsetWidth;
+        const value = Math.floor(
+          (sliderPosition / (containerWidth - sliderWidth)) * 100
+        );
+        output.innerText = `Current Value: ${value}`;
+      }
+
+      function getRandomSpeed() {
+        return (Math.random() + 0.1) * 13;
+      }
+
+      function changeSpeed() {
+        speed = getRandomSpeed();
+      }
+
+      setInterval(moveSlider, 10);
+      setInterval(changeSpeed, 1000); // 1초마다 속도를 변경합니다.
+    </script>
+  </body>
+</html>
